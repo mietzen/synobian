@@ -6,6 +6,7 @@ set -eo pipefail
 # Sources: https://forum.doozan.com/read.php?2,123734,page=2
 
 KERNEL_VER='5.10.158'
+# Get latest version: curl -SsL https://cdn.kernel.org/pub/linux/kernel/v5.x/sha256sums.asc | grep linux-5.10 | awk '{print $2}' | grep -oP '\d+\.\d+\.\d+' | sort -V | tail -n 1
 
 # Install Dependencies
 sudo apt-get update
