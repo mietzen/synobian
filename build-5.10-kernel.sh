@@ -6,8 +6,6 @@ set -eo pipefail
 # Sources: https://forum.doozan.com/read.php?2,123734,page=2
 
 KERNEL_VER='5.10.158'
-# Newest version
-# KERNEL_VER='5.10.224'
 
 # Install Dependencies
 sudo apt-get update
