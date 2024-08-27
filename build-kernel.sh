@@ -16,8 +16,8 @@ sudo apt-get install git curl wget build-essential bc kmod cpio flex libncurses5
 wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-$KERNEL_VER.tar.gz
 
 # Check SHA256SUM
-sha256sum = curl -SsL https://cdn.kernel.org/pub/linux/kernel/v5.x/sha256sums.asc | grep "linux-$KERNEL_VER.tar.gz" | awk '{print $1}' | xargs
-echo "$sha256sum linux-$KERNEL_VER.tar.gz" | sha256sum --check --status
+kernel_sha256sum=$(curl -SsL https://cdn.kernel.org/pub/linux/kernel/v5.x/sha256sums.asc | grep "linux-$KERNEL_VER.tar.gz" | awk '{print $1}' | xargs)
+echo "$kernel_sha256sum linux-$KERNEL_VER.tar.gz" | sha256sum --check --status
 
 # Untar
 tar -xvf linux-$KERNEL_VER.tar.gz
