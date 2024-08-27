@@ -1,0 +1,74 @@
+diff --git a/drivers/gpio/gpiolib.c b/drivers/gpio/gpiolib.c
+index 59d8affad..d88f09313 100644
+--- a/drivers/gpio/gpiolib.c
++++ b/drivers/gpio/gpiolib.c
+@@ -105,15 +105,23 @@ struct gpio_desc *gpio_to_desc(unsigned gpio)
+ {
+ 	struct gpio_device *gdev;
+ 	unsigned long flags;
++	unsigned int iBase;
+ 
+ 	spin_lock_irqsave(&gpio_lock, flags);
+ 
+ 	list_for_each_entry(gdev, &gpio_devices, list) {
+-		if (gdev->base <= gpio &&
++		iBase = ARCH_NR_GPIOS - (gdev->base+gdev->ngpio);
++		if (iBase <= gpio && iBase + gdev->ngpio > gpio) {
++			spin_unlock_irqrestore(&gpio_lock, flags);
++			return &gdev->descs[gpio - iBase];
++		}
++
++/* 		if (gdev->base <= gpio &&
+ 		    gdev->base + gdev->ngpio > gpio) {
+ 			spin_unlock_irqrestore(&gpio_lock, flags);
+ 			return &gdev->descs[gpio - gdev->base];
+ 		}
++*/	
+ 	}
+ 
+ 	spin_unlock_irqrestore(&gpio_lock, flags);
+@@ -4535,3 +4543,44 @@ static int __init gpiolib_debugfs_init(void)
+ subsys_initcall(gpiolib_debugfs_init);
+ 
+ #endif	/* DEBUG_FS */
++
++int syno_gpio_value_set(int iPin, int iValue)
++{
++	int iRet = -1;
++	struct gpio_desc *desc;
++	desc = gpio_to_desc(iPin);  
++
++	if (!desc) {
++		goto END;
++	}
++
++	if (GPIOF_DIR_OUT != gpiod_get_direction(desc)) {
++		printk("pin %d is not writable.\n", iPin);
++		goto END;
++	}
++
++	gpiod_set_value(desc, iValue);
++
++	iRet = 0;
++END:
++	return iRet;
++}
++EXPORT_SYMBOL(syno_gpio_value_set);
++
++int syno_gpio_value_get(int iPin, int *pValue)
++{
++	int iRet = -1;
++	struct gpio_desc *desc;
++	desc = gpio_to_desc(iPin);  
++
++	if (!desc) {
++		goto END;
++	}
++
++	*pValue = gpiod_get_value(desc);
++
++	iRet = 0;
++END:
++	return iRet;
++}
++EXPORT_SYMBOL(syno_gpio_value_get);

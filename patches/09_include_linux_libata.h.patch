@@ -1,0 +1,21 @@
+diff --git a/include/linux/libata.h b/include/linux/libata.h
+index d3600fc7f..3ab842083 100644
+--- a/include/linux/libata.h
++++ b/include/linux/libata.h
+@@ -240,6 +240,8 @@ enum {
+ 	ATA_PFLAG_PIO32		= (1 << 20),  /* 32bit PIO */
+ 	ATA_PFLAG_PIO32CHANGE	= (1 << 21),  /* 32bit PIO can be turned on/off */
+ 	ATA_PFLAG_EXTERNAL	= (1 << 22),  /* eSATA/external port */
++	ATA_PFLAG_PMP_DISCONNECT = (1 << 23),
++	ATA_PFLAG_PMP_CONNECT = (1 << 24),
+ 
+ 	/* struct ata_queued_cmd flags */
+ 	ATA_QCFLAG_ACTIVE	= (1 << 0), /* cmd not yet ack'd to scsi lyer */
+@@ -259,6 +261,7 @@ enum {
+ 	ATA_HOST_STARTED	= (1 << 1),	/* Host started */
+ 	ATA_HOST_PARALLEL_SCAN	= (1 << 2),	/* Ports on this host can be scanned in parallel */
+ 	ATA_HOST_IGNORE_ATA	= (1 << 3),	/* Ignore ATA devices on this host. */
++	ATA_HOST_LLD_SPINUP_DELAY	= (1 << 4),	 
+ 
+ 	/* bits 24:31 of host->flags are reserved for LLD specific flags */
+ 

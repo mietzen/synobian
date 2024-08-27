@@ -1,0 +1,34 @@
+diff --git a/include/linux/gpio.h b/include/linux/gpio.h
+index 008ad3ee5..ad7ed7b6f 100644
+--- a/include/linux/gpio.h
++++ b/include/linux/gpio.h
+@@ -13,6 +13,7 @@
+ #define __LINUX_GPIO_H
+ 
+ #include <linux/errno.h>
++#include <linux/types.h>
+ 
+ /* see Documentation/driver-api/gpio/legacy.rst */
+ 
+@@ -53,8 +54,21 @@ struct gpio {
+ 	const char	*label;
+ };
+ 
++extern void syno_gpio_direction_output(int pin, int pValue);
++extern void syno_gpio_direction_input(int pin);
++extern int syno_gpio_to_irq(int pin);
++extern int SYNO_GPIO_READ(int pin);
++extern void SYNO_GPIO_WRITE(int pin, int pValue);
++
+ #ifdef CONFIG_GPIOLIB
+ 
++extern int syno_gpio_value_set(int iPin, int iValue);
++extern int syno_gpio_value_get(int iPin, int *pValue);
++
++extern void DBG_SpinupGroupListGpio(void);
++extern int SynoHaveRPDetectPin(void);
++extern int SynoAllRedundantPowerDetected(void);
++
+ #ifdef CONFIG_ARCH_HAVE_CUSTOM_GPIO_H
+ #include <asm/gpio.h>
+ #else

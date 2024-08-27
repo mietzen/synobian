@@ -1,0 +1,14 @@
+diff --git a/kernel/sysctl.c b/kernel/sysctl.c
+index dc75a2ea0..40ee53bf6 100644
+--- a/kernel/sysctl.c
++++ b/kernel/sysctl.c
+@@ -106,6 +106,9 @@
+ 
+ #if defined(CONFIG_SYSCTL)
+ 
++long g_syno_hdd_powerup_seq = -1;
++EXPORT_SYMBOL(g_syno_hdd_powerup_seq);
++
+ /* Constants used for minimum and  maximum */
+ #ifdef CONFIG_LOCKUP_DETECTOR
+ static int sixty = 60;

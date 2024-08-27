@@ -1,0 +1,13 @@
+diff --git a/init/Kconfig b/init/Kconfig
+index ccec53dd4..6a6ae6807 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -2063,6 +2063,8 @@ config TRACEPOINTS
+ 
+ endmenu		# General setup
+ 
++source "synoconfigs/Kconfig"
++
+ source "arch/Kconfig"
+ 
+ config RT_MUTEXES

@@ -1,0 +1,10 @@
+diff --git a/README b/README
+index 669ac7c32..53b8c4384 100644
+--- a/README
++++ b/README
+@@ -16,3 +16,5 @@ several of them using the Restructured Text markup notation.
+ Please read the Documentation/process/changes.rst file, as it contains the
+ requirements for building and running the kernel, and information about
+ the problems which may result by upgrading your kernel.
++
++Enhancements for Synology DS718+ based on Synology's kernel 4.4.59+.
