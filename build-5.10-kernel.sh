@@ -2,6 +2,7 @@
 
 set -eo pipefail
 
+# This is based on the work of Debi-718:
 # Sources: https://forum.doozan.com/read.php?2,123734,page=2
 
 KERNEL_VER='5.10.158'
@@ -10,7 +11,7 @@ KERNEL_VER='5.10.158'
 
 # Install Dependencies
 sudo apt-get update
-sudo apt-get install git curl wget build-essential bc kmod cpio flex libncurses5-dev libelf-dev libssl-dev dwarves bison -y
+sudo apt-get install git curl wget rsync build-essential bc kmod cpio flex libncurses5-dev libelf-dev libssl-dev dwarves bison -y
 
 # Get Kernel Sources
 wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-$KERNEL_VER.tar.gz
@@ -25,17 +26,19 @@ cd linux-$KERNEL_VER
 
 # Apply patches
 for patch in ../patches/*.patch; do
-    git apply --whitespace=fix $patch
+    echo "Applying patch: $patch"
+    git apply --whitespace=fix --directory=linux-$KERNEL_VER --verbose $patch
 done
 
-mkdir ../syno-linux-$KERNEL_VER-modules
-mkdir ../syno-linux-$KERNEL_VER-kernel
+mkdir -p ../syno-linux-$KERNEL_VER-modules
+mkdir -p ../syno-linux-$KERNEL_VER-kernel
 
 # Build the Kernel
-# make menuconfig
-make -j1
-make -j1 modules
-make -j1 INSTALL_MOD_PATH=../syno-linux-$KERNEL_VER-modules modules_install
-make -j1 bzImage
-make -j1 INSTALL_PATH=../syno-linux-$KERNEL_VER-kernel install
-make -j1 bindeb-pkg
+make olddefconfig
+make -j$(nproc)
+make -j$(nproc) modules
+make -j$(nproc) INSTALL_MOD_PATH=../syno-linux-$KERNEL_VER-modules modules_install
+make -j$(nproc) bzImage
+make -j$(nproc) INSTALL_PATH=../syno-linux-$KERNEL_VER-kernel install
+make -j$(nproc) bindeb-pkg
+
