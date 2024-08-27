@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -eo pipefail
+
 # Sources: https://forum.doozan.com/read.php?2,123734,page=2
 
 KERNEL_VER='5.10.158'
@@ -7,17 +9,18 @@ KERNEL_VER='5.10.158'
 # KERNEL_VER='5.10.224'
 
 # Install Dependencies
-sudo apt-get install git curl wget build-essential bc kmod cpio flex libncurses5-dev libelf-dev libssl-dev dwarves bison
+sudo apt-get update
+sudo apt-get install git curl wget build-essential bc kmod cpio flex libncurses5-dev libelf-dev libssl-dev dwarves bison -y
 
 # Get Kernel Sources
-wget https://cdn.kernel.org/pub/linux/kernel/v5.x/$KERNEL_VER.tar.gz
+wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-$KERNEL_VER.tar.gz
 
 # Check SHA256SUM
-sha256sum = curl -SsL https://cdn.kernel.org/pub/linux/kernel/v5.x/sha256sums.asc | grep "$KERNEL_VER.tar.gz" | awk '{print $1}' | xargs
-echo "$sha256sum $KERNEL_VER.tar.gz" | sha256sum --check --status
+sha256sum = curl -SsL https://cdn.kernel.org/pub/linux/kernel/v5.x/sha256sums.asc | grep "linux-$KERNEL_VER.tar.gz" | awk '{print $1}' | xargs
+echo "$sha256sum linux-$KERNEL_VER.tar.gz" | sha256sum --check --status
 
 # Untar
-tar -xvf $KERNEL_VER.tar.gz
+tar -xvf linux-$KERNEL_VER.tar.gz
 cd linux-$KERNEL_VER
 
 # Apply patches
