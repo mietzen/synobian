@@ -10,7 +10,7 @@ source ./build-5.10-kernel.sh $KERNEL_VER
 apt-get update
 apt-get install debootstrap dosfstools parted -y
 
-# Create a 8GB disk image
+# Create a 8GB (7.5 GiB) disk image
 dd if=/dev/zero of=synobian.img iflag=fullblock bs=1M count=7629 && sync
 
 # Create a loopback device
@@ -24,7 +24,7 @@ parted --script "$loopdev" mkpart primary fat32 1MiB 513MiB
 parted --script "$loopdev" set 1 esp on
 
 # Create the second partition (rest of the disk)
-parted --script "$loopdev" mkpart primary ext4 513MiB 100%
+parted --script "$loopdev" mkpart primary ext2 513MiB 100%
 
 # Format the first partition as vfat
 mkfs.vfat -F32 "${loopdev}p1"
@@ -64,10 +64,9 @@ apt-get update
 export LANGUAGE="en_US:en"
 export LC_ALL="en_US.UTF-8"
 export LANG="en_US.UTF-8"
+echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen
 
 apt-get install locales -y
-echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen
-dpkg-reconfigure --frontend=noninteractive locales
 
 # Install Dependencies
 apt-get install grub-efi-amd64 shim-signed openssh-server sudo -y
@@ -88,16 +87,16 @@ EOL
 grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB --recheck
 
 # Set Grub defaults
-sed -i 's#^\(GRUB_CMDLINE_LINUX_DEFAULT="quiet\)"$#\1 console=ttyS2,115200n8 SataPortMap=22 sata_remap=\"0>2:1>3:2>0:3>1\" syno_hdd_detect=18,179,176,175 syno_hdd_enable=21,20,19,9"#' /etc/default/grub
+sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/c\GRUB_CMDLINE_LINUX_DEFAULT='\''quiet console=ttyS2,115200n8 SataPortMap=22 sata_remap="0>2:1>3:2>0:3>1" syno_hdd_detect=18,179,176,175 syno_hdd_enable=21,20,19,9'\''' /etc/default/grub
 
 # Generate the GRUB configuration file
 update-grub
 
-# Replace device path with UUID (only needed on image generation)
-sed -i -e "s:root=/dev/loop0p2:root=UUID=$(blkid -s UUID -o value /dev/loop0p2):g" /boot/grub/grub.cfg
+# Replace loop device path with UUID (only needed on image generation)
+sed -i -e "s:root=/dev/loop0p2:root=UUID=\$(blkid -s UUID -o value /dev/loop0p2):g" /boot/grub/grub.cfg
 
 # Setup SSH Server
-sed -i 's/PermitRootLogin yes/PermitRootLogin no/g' /etc/ssh/sshd_config
+sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/g' /etc/ssh/sshd_config
 
 # Create synobian User
 useradd --create-home --password synobian --uid 2000 --user-group --shell /bin/bash --comment "Initial Synobian User" synobian
@@ -106,7 +105,7 @@ echo "synobian ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/synobian
 # Set Hostanme
 hostname synobian
 echo "synobian" > /etc/hostname
-echo "127.0.1.1     synobian" > /etc/hosts
+echo "127.0.1.1     synobian" >> /etc/hosts
 
 # Deactivate root password
 usermod -p ! root
@@ -117,6 +116,9 @@ apt-get -y clean
 # Cleanup history and exit chroot
 cat /dev/null > ~/.bash_history && history -c && exit
 EOF
+
+# Compress Image
+gzip synobian.img
 
 # Cleanup
 rm /mnt/synobian/tmp/*.deb
@@ -130,3 +132,5 @@ losetup -d "$loopdev"
 
 # Remove the temporary directory
 rmdir /mnt/synobian
+
+rm synobian.img
