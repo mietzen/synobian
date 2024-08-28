@@ -2,6 +2,14 @@
 
 set -eo pipefail
 
+if [ -z "$1" ]; then
+    echo "Error: KERNEL_VER is not set."
+    exit 1
+else
+    KERNEL_VER="$1"
+    echo "Building kernel: $KERNEL_VER"
+fi
+
 # This is based on the work of Debi-718:
 # Sources: https://forum.doozan.com/read.php?2,123734,page=2
 

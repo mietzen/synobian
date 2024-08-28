@@ -3,9 +3,9 @@
 set -eo pipefail
 
 # Build the Kernel
-export KERNEL_VER='5.10.158'
+KERNEL_VER='5.10.158'
 # Get latest version: curl -SsL https://cdn.kernel.org/pub/linux/kernel/v5.x/sha256sums.asc | grep linux-5.10 | awk '{print $2}' | grep -oP '\d+\.\d+\.\d+' | sort -V | tail -n 1
-source ./build-5.10-kernel.sh
+source ./build-5.10-kernel.sh $KERNEL_VER
 
 apt-get update
 apt-get install debootstrap dosfstools parted -y
