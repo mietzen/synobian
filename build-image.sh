@@ -2,7 +2,10 @@
 
 set -eo pipefail
 
-KERNEL_VER='5.10.158'
+# Build the Kernel
+export KERNEL_VER='5.10.158'
+# Get latest version: curl -SsL https://cdn.kernel.org/pub/linux/kernel/v5.x/sha256sums.asc | grep linux-5.10 | awk '{print $2}' | grep -oP '\d+\.\d+\.\d+' | sort -V | tail -n 1
+source ./build-5.10-kernel.sh
 
 apt-get update
 apt-get install debootstrap dosfstools parted -y
@@ -52,18 +55,25 @@ cp ./linux-image-${KERNEL_VER}_${KERNEL_VER}-1_amd64.deb /mnt/synobian/tmp/
 cp ./linux-libc-dev_${KERNEL_VER}-1_amd64.deb /mnt/synobian/tmp/
 
 # Enter the chroot environment
-chroot /mnt/synobian /bin/bash << EOF
-# Update the package list
+LANG=en_US.UTF-8 chroot /mnt/synobian /bin/bash << EOF
+# Setup Language
+locale-gen en_US.UTF-8
+update-locale LANG=en_US.UTF-8
+
+# Install Dependencies
 apt-get update
+apt-get install grub-efi-amd64 shim-signed openssh-server sudo -y
 
 # Install the custom kernel
 dpkg -i /tmp/linux-headers-${KERNEL_VER}_${KERNEL_VER}-1_amd64.deb /tmp/linux-image-${KERNEL_VER}_${KERNEL_VER}-1_amd64.deb /tmp/linux-libc-dev_${KERNEL_VER}-1_amd64.deb
 
-# Install GRUB2 and necessary packages
-apt-get install -y grub-efi-amd64 shim-signed
+cat > /boot/grub/device.map << EOL
+(hd0)   /dev/loop0p1
+(hd0,1) /dev/loop0p2
+EOL
 
 # Install GRUB to the EFI partition
-grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB --recheck
+grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB --grub-mkdevicemap=/boot/grub/device.map /dev/loop0
 
 # Generate the GRUB configuration file
 update-grub
@@ -77,11 +87,27 @@ UUID=\$(blkid -s UUID -o value /dev/loop0p2) / ext4 defaults 0 1
 UUID=\$(blkid -s UUID -o value /dev/loop0p1) /boot/efi vfat defaults 0 1
 EOL
 
+# Setup SSH Server
+sed -i 's/PermitRootLogin yes/PermitRootLogin no/g' /etc/ssh/sshd_config
+
+# Create synobian User
+useradd --create-home --password synobian --uid 2000 --user-group --shell /bin/bash --comment "Initial Synobian User" synobian
+echo "synobian ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/synobian
+
+# Set Timezone to UTC
+timedatectl set-timezone utc
+
+# Set Hostanme
+hostnamectl set-hostname synobian
+
+# Deactivate root password
+usermod -p ! root
+
 # Clear cache
 apt-get -y clean
 
-# Exit chroot
-exit
+# Cleanup history and exit chroot
+cat /dev/null > ~/.bash_history && history -c && exit
 EOF
 
 # Cleanup
