@@ -10,8 +10,8 @@ source ./build-5.10-kernel.sh $KERNEL_VER
 apt-get update
 apt-get install debootstrap dosfstools parted -y
 
-# Create a 16GB (14.9 GiB) disk image
-dd if=/dev/zero of=synobian.img iflag=fullblock bs=1M count=15258 && sync
+# Create a 8GB disk image
+dd if=/dev/zero of=synobian.img iflag=fullblock bs=1M count=7629 && sync
 
 # Create a loopback device
 loopdev=$(losetup --show -fP synobian.img)
@@ -48,6 +48,7 @@ debootstrap bookworm /mnt/synobian http://deb.debian.org/debian
 mount --bind /dev /mnt/synobian/dev
 mount --bind /proc /mnt/synobian/proc
 mount --bind /sys /mnt/synobian/sys
+mount --bind /sys/firmware/efi/efivars /mnt/synobian/sys/firmware/efi/efivars
 
 # Copy the custom kernel packages to the chroot environment
 cp ./linux-headers-${KERNEL_VER}_${KERNEL_VER}-1_amd64.deb /mnt/synobian/tmp/
@@ -55,28 +56,24 @@ cp ./linux-image-${KERNEL_VER}_${KERNEL_VER}-1_amd64.deb /mnt/synobian/tmp/
 cp ./linux-libc-dev_${KERNEL_VER}-1_amd64.deb /mnt/synobian/tmp/
 
 # Enter the chroot environment
-LANG=en_US.UTF-8 chroot /mnt/synobian /bin/bash << EOF
+chroot /mnt/synobian /bin/bash << EOF
+# APT Update
+apt-get update
+
 # Setup Language
-locale-gen en_US.UTF-8
-update-locale LANG=en_US.UTF-8
+export LANGUAGE="en_US:en"
+export LC_ALL="en_US.UTF-8"
+export LANG="en_US.UTF-8"
+
+apt-get install locales -y
+echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen
+dpkg-reconfigure --frontend=noninteractive locales
 
 # Install Dependencies
-apt-get update
 apt-get install grub-efi-amd64 shim-signed openssh-server sudo -y
 
 # Install the custom kernel
 dpkg -i /tmp/linux-headers-${KERNEL_VER}_${KERNEL_VER}-1_amd64.deb /tmp/linux-image-${KERNEL_VER}_${KERNEL_VER}-1_amd64.deb /tmp/linux-libc-dev_${KERNEL_VER}-1_amd64.deb
-
-cat > /boot/grub/device.map << EOL
-(hd0)   /dev/loop0p1
-(hd0,1) /dev/loop0p2
-EOL
-
-# Install GRUB to the EFI partition
-grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB --grub-mkdevicemap=/boot/grub/device.map /dev/loop0
-
-# Generate the GRUB configuration file
-update-grub
 
 # Generate fstab
 cat <<EOL > /etc/fstab
@@ -87,6 +84,18 @@ UUID=\$(blkid -s UUID -o value /dev/loop0p2) / ext4 defaults 0 1
 UUID=\$(blkid -s UUID -o value /dev/loop0p1) /boot/efi vfat defaults 0 1
 EOL
 
+# Install GRUB to the EFI partition
+grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB --recheck
+
+# Set Grub defaults
+sed -i 's#^\(GRUB_CMDLINE_LINUX_DEFAULT="quiet\)"$#\1 console=ttyS2,115200n8 SataPortMap=22 sata_remap=\"0>2:1>3:2>0:3>1\" syno_hdd_detect=18,179,176,175 syno_hdd_enable=21,20,19,9"#' /etc/default/grub
+
+# Generate the GRUB configuration file
+update-grub
+
+# Replace device path with UUID (only needed on image generation)
+sed -i -e "s:root=/dev/loop0p2:root=UUID=$(blkid -s UUID -o value /dev/loop0p2):g" /boot/grub/grub.cfg
+
 # Setup SSH Server
 sed -i 's/PermitRootLogin yes/PermitRootLogin no/g' /etc/ssh/sshd_config
 
@@ -94,11 +103,10 @@ sed -i 's/PermitRootLogin yes/PermitRootLogin no/g' /etc/ssh/sshd_config
 useradd --create-home --password synobian --uid 2000 --user-group --shell /bin/bash --comment "Initial Synobian User" synobian
 echo "synobian ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/synobian
 
-# Set Timezone to UTC
-timedatectl set-timezone utc
-
 # Set Hostanme
-hostnamectl set-hostname synobian
+hostname synobian
+echo "synobian" > /etc/hostname
+echo "127.0.1.1     synobian" > /etc/hosts
 
 # Deactivate root password
 usermod -p ! root
@@ -114,7 +122,7 @@ EOF
 rm /mnt/synobian/tmp/*.deb
 
 # Unmount the special filesystems and partitions
-umount /mnt/synobian/{boot/efi,dev,proc,sys}
+umount /mnt/synobian/{boot/efi,dev,proc,sys/firmware/efi/efivars,sys}
 umount /mnt/synobian
 
 # Detach the loopback device
